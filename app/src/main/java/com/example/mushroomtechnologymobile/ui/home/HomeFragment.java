@@ -8,6 +8,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.NonNull;
@@ -40,6 +41,11 @@ import com.github.mikephil.charting.highlight.Highlight;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
 import com.github.mikephil.charting.utils.ColorTemplate;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -53,6 +59,8 @@ public class HomeFragment extends Fragment implements
     private HomeViewModel homeViewModel;
     //Typeface tfLight = Typeface.createFromAsset(getActivity().getAssets(), "OpenSans-Light.ttf");
     private LineChart chart,chart2;
+    static String Database_Path = "nodemcu";
+    DatabaseReference[] databaseReference = new DatabaseReference[2];
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
         homeViewModel =
@@ -148,6 +156,63 @@ public class HomeFragment extends Fragment implements
         rightAxis2.setEnabled(false);
 
 
+        databaseReference[0] = FirebaseDatabase.getInstance().getReference(Database_Path+"/suhu");
+        databaseReference[0].addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                //Toast.makeText(getContext(),dataSnapshot.getValue(Float.class).toString(),Toast.LENGTH_LONG).show();
+                if(dataSnapshot.exists() && dataSnapshot.getValue() != null){
+                    LineData data = chart.getData();
+                    if(data != null){
+                        ILineDataSet set = data.getDataSetByIndex(0);
+                        if (set == null){
+                            set = createSet();
+                            data.addDataSet(set);
+                        }
+                        data.addEntry(new Entry(set.getEntryCount(),dataSnapshot.getValue(Float.class)), 0);
+                        data.notifyDataChanged();
+                        chart.notifyDataSetChanged();
+                        chart.setVisibleXRangeMaximum(50);
+                        chart.moveViewToX(data.getEntryCount());
+
+                    }
+
+                }
+
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+        databaseReference[1] = FirebaseDatabase.getInstance().getReference(Database_Path+"/kelembapan");
+        databaseReference[1].addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if(dataSnapshot.exists() && dataSnapshot.getValue() != null) {
+                    LineData data = chart2.getData();
+                    if(data != null){
+                        ILineDataSet set = data.getDataSetByIndex(0);
+                        if (set == null){
+                            set = createSet();
+                            data.addDataSet(set);
+                        }
+                        data.addEntry(new Entry(set.getEntryCount(), dataSnapshot.getValue(Float.class)), 0);
+                        data.notifyDataChanged();
+                        chart2.notifyDataSetChanged();
+                        chart2.setVisibleXRangeMaximum(50);
+                        chart2.moveViewToX(data.getEntryCount());
+                    }
+
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
 
 
         return root;
@@ -277,15 +342,15 @@ public class HomeFragment extends Fragment implements
     @Override
     public void onResume() {
         super.onResume();
-        feedMultiple();
+        //feedMultiple();
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        if (thread != null) {
-            thread.interrupt();
-        }
+//        if (thread != null) {
+//            thread.interrupt();
+//        }
     }
 
     @Override
